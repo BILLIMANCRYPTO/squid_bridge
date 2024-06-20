@@ -6,8 +6,8 @@ MAX_DELAY = 50000
 GAS_PRICE = 50
 
 # Сколько отправляем % от баланса
-MIN_BALANCE = 0.85   # Например, 10%
-MAX_BALANCE = 0.9   # Например, 50%
+MIN_BALANCE = 0.85   # Например, 85%
+MAX_BALANCE = 0.9   # Например, 90%
 
 # RPC чейна отправления
 RPC_URL = 'https://rpc.ankr.com/arbitrum'
@@ -42,7 +42,7 @@ chain_recive = {
 
 #Какой токен отправляем:
 
-from_token = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
-to_token = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
+from_token = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'    # ETH
+to_token = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'    # ETH
 
-slippage = 1.5
+slippage = 1.5 # Можешь выбрать сам, но по дефолту стоит как на сайте
