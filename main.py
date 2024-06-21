@@ -13,7 +13,6 @@ import json
 # Инициализация colorama
 init(autoreset=True)
 
-
 # Инициализация Web3
 web3 = Web3(Web3.HTTPProvider(RPC_URL))
 
@@ -47,6 +46,11 @@ use_random_chain = RANDOM_RECIVE
 def get_current_gas_price():
     return web3.eth.gas_price
 
+# Функция для получения текущей базовой комиссии через RPC
+def get_current_base_fee():
+    latest_block = web3.eth.get_block('latest')
+    return latest_block['baseFeePerGas']
+
 # Функция для проверки и ожидания снижения цены газа
 def wait_for_gas_price_below(threshold_gwei):
     while True:
@@ -76,7 +80,6 @@ def squid_bridge(wallet_address, private_key, web3, i):
     else:
         destination_chain_id, chain_name_recive = next(iter(chain_recive.items()))  # Использовать первую цепочку в списке
 
-
     url = f"https://api.squidrouter.com/v1/route?fromChain={chainId_sent}&fromToken={from_token}&fromAddress={wallet_address}&fromAmount={amount_str}&toChain={destination_chain_id}&toToken={to_token}&toAddress={wallet_address}&quoteOnly=false&slippage={slippage}&enableExpress=true"
 
     headers = {'Content-Type': 'application/json'}
@@ -100,7 +103,7 @@ def squid_bridge(wallet_address, private_key, web3, i):
                 # Извлекаем значение 'data'
                 data = response_data.get('route', {}).get('transactionRequest', {}).get('data', None)
                 sent_value = int(response_data.get('route', {}).get('transactionRequest', {}).get('value', None))
-                gas_limit1 = int(response_data.get('route', {}).get('transactionRequest', {}).get('gasLimit', None))
+                gas_limit_squid = int(response_data.get('route', {}).get('transactionRequest', {}).get('gasLimit', None))
                 to_amount = int(response_data.get('route', {}).get('estimate', {}).get('toAmount', None))
                 # Извлекаем первое значение 'chainName'
                 chain_names = []
@@ -124,7 +127,9 @@ def squid_bridge(wallet_address, private_key, web3, i):
                     first_chain_name = "Неизвестно"
 
                 gas_price = get_current_gas_price()
-
+                base_fee = get_current_base_fee()
+                max_fee_per_gas = base_fee + Web3.to_wei(2, 'gwei')
+                max_priority_fee_per_gas = Web3.to_wei(2, 'gwei')
 
                 # Проверка цены газа и ожидание, если она выше порогового значения
                 wait_for_gas_price_below(GAS_PRICE)
@@ -132,17 +137,23 @@ def squid_bridge(wallet_address, private_key, web3, i):
                 # Получение текущей даты и времени
                 current_time = datetime.now()
 
-
                 print(
                     f'{current_time.date()} {current_time.time()} | [{i}/{len(wallets)}] | {wallet_address} | Squid Router | Sent {sent_value / 10 ** 18} ETH from {first_chain_name} to {chain_name_recive}, Recive {to_amount / 10 ** 18} -  ETH in {chain_name_recive}')
 
                 try:
-
+                    # Определение gasLimit
+                    gas_limit1 = web3.eth.estimateGas({
+                        'from': wallet_address,
+                        'to': contract_address,
+                        'value': sent_value,
+                        'data': data
+                    })
 
                     tx_params = {
                         'nonce': web3.eth.get_transaction_count(wallet_address),
-                        'gasPrice': gas_price,
-                        'gas': gas_limit1,
+                        'maxFeePerGas': max_fee_per_gas,
+                        'maxPriorityFeePerGas': max_priority_fee_per_gas,
+                        'gas': gas_limit_squid,
                         'to': contract_address,
                         'value': sent_value,
                         'data': data,
